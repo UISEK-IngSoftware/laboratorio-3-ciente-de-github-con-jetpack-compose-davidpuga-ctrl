@@ -3,6 +3,7 @@ package ec.edu.uisek.githubclient.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ec.edu.uisek.githubclient.models.Repository
+import ec.edu.uisek.githubclient.services.RepoRequest
 import ec.edu.uisek.githubclient.services.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,11 +29,32 @@ class RepoListViewModel : ViewModel() {
             _isLoading.value = true
             _errorMsg.value = null
             try {
-                // Aquí se hace la magia de la API REST
                 val result = RetrofitClient.apiService.getRepository()
                 _repos.value = result
             } catch (e: Exception) {
                 _errorMsg.value = "Error: ${e.localizedMessage}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // FUNCIÓN PARA EL MÉTODO POST
+    fun createRepo(name: String, description: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val request = RepoRequest(name = name, description = description)
+                val response = RetrofitClient.apiService.createRepository(request)
+
+                if (response.isSuccessful) {
+                    // Si se creó con éxito, refrescamos la lista
+                    fetchRepos()
+                } else {
+                    _errorMsg.value = "Error al crear: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                _errorMsg.value = "Fallo de red: ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }
